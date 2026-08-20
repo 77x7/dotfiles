@@ -1,0 +1,10 @@
+{
+  "projects": [
+    {"id": "dotfiles", "repository": "dotfiles", "localPath": "Documents/Projects/dotfiles", "status": "active", "purpose": "Cross-distribution setup inventory and coordinator"},
+    {"id": "mediavol", "repository": "mediavol", "localPath": "MediaVol", "status": "active", "purpose": "Adaptive Plasma setup, focused volume, automation, and visual assets"},
+    {"id": "emoji-cord", "repository": "emoji-cord", "localPath": "Emoji-cord", "status": "active", "purpose": "KDE Wayland shortcode emoji input method"},
+    {"id": "no-vicinae-animation", "repository": "no-vicinae-animation", "localPath": "Documents/Projects/no-vicinae-animation", "status": "active", "purpose": "KWin effect suppressing Vicinae animations"},
+    {"id": "window-title-patch", "repository": "upstream-patch", "localPath": ".local/share/plasma/plasmoids/org.kde.windowtitle", "status": "patch-needed", "purpose": "Local Plasma compatibility modification"},
+    {"id": "qylock", "repository": "upstream-reference", "localPath": "qylock", "status": "clean-upstream", "purpose": "SDDM themes; active Sword theme is unmodified upstream"}
+  ]
+}

@@ -14,6 +14,7 @@ It is not a raw home-directory backup. Tokens, wallets, cookies, browser profile
 ./bin/dotfiles apply video-wallpapers
 ./bin/dotfiles apply-video-wallpapers
 ./bin/dotfiles packages
+./bin/dotfiles bootstrap --dry-run
 ./bin/dotfiles projects
 ./bin/dotfiles check
 ```
@@ -30,7 +31,7 @@ The wallpaper videos are managed with Git LFS and may have redistribution restri
 - `payload/home/.local/share/puzll-dotfiles/`: user-curated media that must survive independently of `Downloads`.
 - `manifests/files.tsv`: the bidirectional capture/apply contract.
 - `manifests/packages.json`: package intent and distro mappings.
-- `manifests/projects.tsv`: canonical authored and locally modified source repositories.
+- `manifests/projects.json`: canonical authored and locally modified source repositories.
 - `manifests/third-party.json`: provenance for installed themes, widgets, and effects.
 - `docs/inventory.md`: discovered customization inventory and ownership boundaries.
 
@@ -43,6 +44,16 @@ The wallpaper videos are managed with Git LFS and may have redistribution restri
 5. Provision Cider, VPN, CLI proxy, SSH/GPG, browser, and application credentials manually.
 
 No monitor topology, EDIDs, connector names, output positions, resolutions, Plasma containment IDs, or activity UUIDs are stored. MediaVol generates panels for the outputs available at apply time, and the video wallpaper script chooses media from each output's current orientation.
+
+## Supported systems
+
+- Fedora and Nobara use `dnf`.
+- Arch uses `pacman`.
+- Debian and Ubuntu use `apt-get`.
+- openSUSE uses `zypper`.
+- NixOS is detected but intentionally deferred until its declarative modules and authored application packages can be developed and tested together.
+
+`./bin/dotfiles bootstrap --dry-run` previews native installation. Add `--groups core,desktop,appearance`, `--flatpaks`, and `--yes` as needed. Package names are mappings rather than assumptions shared across distributions.
 
 ## Continuous maintenance
 

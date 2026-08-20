@@ -3,27 +3,32 @@
     "core": {
       "fedora": ["git", "git-lfs", "curl", "jq", "rsync", "zsh", "fzf", "flatpak", "pipx"],
       "arch": ["git", "git-lfs", "curl", "jq", "rsync", "zsh", "fzf", "flatpak", "python-pipx"],
-      "debian": ["git", "git-lfs", "curl", "jq", "rsync", "zsh", "fzf", "flatpak", "pipx"]
+      "debian": ["git", "git-lfs", "curl", "jq", "rsync", "zsh", "fzf", "flatpak", "pipx"],
+      "opensuse": ["git", "git-lfs", "curl", "jq", "rsync", "zsh", "fzf", "flatpak", "python3-pipx"]
     },
     "desktop": {
       "fedora": ["ghostty", "micro", "btop", "mpv", "qimgv", "qbittorrent", "pavucontrol-qt", "playerctl", "vicinae"],
       "arch": ["ghostty", "micro", "btop", "mpv", "qbittorrent", "pavucontrol", "playerctl"],
-      "debian": ["micro", "btop", "mpv", "qbittorrent", "pavucontrol", "playerctl"]
+      "debian": ["micro", "btop", "mpv", "qbittorrent", "pavucontrol", "playerctl"],
+      "opensuse": ["micro", "btop", "mpv", "qbittorrent", "pavucontrol-qt", "playerctl"]
     },
     "kde-automation": {
       "fedora": ["cmake", "ninja-build", "gcc-c++", "qt6-qtbase-devel", "kf6-kservice-devel", "pulseaudio-libs-devel", "libX11-devel", "kdotool", "xremap-kde"],
       "arch": ["cmake", "ninja", "gcc", "qt6-base", "kservice", "libpulse", "libx11"],
-      "debian": ["cmake", "ninja-build", "g++", "qt6-base-dev", "libpulse-dev", "libx11-dev"]
+      "debian": ["cmake", "ninja-build", "g++", "qt6-base-dev", "libpulse-dev", "libx11-dev"],
+      "opensuse": ["cmake", "ninja", "gcc-c++", "libqt6-qtbase-devel", "kf6-kservice-devel", "libpulse-devel", "libX11-devel"]
     },
     "emoji-cord-build": {
       "fedora": ["cmake", "gcc-c++", "kf6-kwindowsystem-devel", "libX11-devel", "libXi-devel", "libXtst-devel", "libxkbcommon-devel", "ninja-build", "qt6-qtbase-devel", "qt6-qtbase-private-devel", "qt6-qtdeclarative-devel", "qt6-qtwayland-devel", "wayland-devel"],
       "arch": ["cmake", "gcc", "kwindowsystem", "libx11", "libxi", "libxtst", "libxkbcommon", "ninja", "qt6-base", "qt6-declarative", "qt6-wayland", "wayland"],
-      "debian": ["cmake", "g++", "libkf6windowsystem-dev", "libx11-dev", "libxi-dev", "libxtst-dev", "libxkbcommon-dev", "ninja-build", "qt6-base-dev", "qt6-declarative-dev", "qt6-wayland-dev", "wayland-protocols"]
+      "debian": ["cmake", "g++", "libkf6windowsystem-dev", "libx11-dev", "libxi-dev", "libxtst-dev", "libxkbcommon-dev", "ninja-build", "qt6-base-dev", "qt6-declarative-dev", "qt6-wayland-dev", "wayland-protocols"],
+      "opensuse": ["cmake", "gcc-c++", "kf6-kwindowsystem-devel", "libX11-devel", "libXi-devel", "libXtst-devel", "libxkbcommon-devel", "ninja", "libqt6-qtbase-devel", "libqt6-qtdeclarative-devel", "libqt6-qtwayland-devel", "wayland-devel"]
     },
     "appearance": {
       "fedora": ["kvantum", "abattis-cantarell-vf-fonts", "google-noto-sans-fonts", "jetbrainsmono-nerd-fonts"],
       "arch": ["kvantum", "cantarell-fonts", "noto-fonts"],
-      "debian": ["qt6-style-kvantum", "fonts-cantarell", "fonts-noto"]
+      "debian": ["qt6-style-kvantum", "fonts-cantarell", "fonts-noto"],
+      "opensuse": ["kvantum-manager", "cantarell-fonts", "noto-sans-fonts"]
     }
   },
   "flatpaks": [

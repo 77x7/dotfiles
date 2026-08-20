@@ -13,6 +13,8 @@ Commands:
   capture [modules]                     Refresh portable payload
   apply [modules] [--dry-run]           Restore portable modules
   apply-video-wallpapers [--dry-run]    Set landscape/portrait Plasma videos
+  bootstrap [--groups LIST] [--flatpaks] [--dry-run] [--yes]
+                                        Install mapped packages
   packages                              Show package intent for this distro
   projects                              Show canonical source repositories
   check                                 Validate manifests and scan for leaks
@@ -102,22 +104,83 @@ apply_portable() {
   (( dry_run )) || info "Backup: $backup_root"
 }
 
-show_packages() {
+detect_family() {
   local family=fedora
+  if [[ -n "${DOTFILES_OS_FAMILY:-}" ]]; then
+    [[ "$DOTFILES_OS_FAMILY" =~ ^(fedora|arch|debian|opensuse|nix)$ ]] || die "Invalid DOTFILES_OS_FAMILY: $DOTFILES_OS_FAMILY"
+    printf '%s\n' "$DOTFILES_OS_FAMILY"
+    return 0
+  fi
   [[ -r /etc/os-release ]] && source /etc/os-release
   case " ${ID:-} ${ID_LIKE:-} " in
+    *nixos*) family=nix ;;
+    *suse*) family=opensuse ;;
     *arch*) family=arch ;;
     *debian*|*ubuntu*) family=debian ;;
   esac
+  printf '%s\n' "$family"
+}
+
+show_packages() {
+  local family
+  family="$(detect_family)"
   require jq
   jq -r --arg family "$family" '"Detected package family: \($family)\n", (.groups | to_entries[] | "[\(.key)]\n\(.value[$family] // [] | join(" "))\n")' "$ROOT/manifests/packages.json"
+}
+
+bootstrap() {
+  local family groups="core,desktop,appearance" dry_run=0 yes=0 install_flatpaks=0
+  local -a packages=() command=() root_command=()
+  while (( $# )); do
+    case "$1" in
+      --groups) (( $# >= 2 )) || die '--groups requires a comma-separated value'; groups="$2"; shift ;;
+      --flatpaks) install_flatpaks=1 ;;
+      --dry-run) dry_run=1 ;;
+      --yes) yes=1 ;;
+      *) die "Unknown bootstrap option: $1" ;;
+    esac
+    shift
+  done
+  family="$(detect_family)"
+  require jq
+  if [[ "$family" == nix ]]; then
+    info 'NixOS support is planned but not implemented yet.'
+    info 'No imperative package installation was attempted; NixOS will use declarative modules.'
+    return 0
+  fi
+  mapfile -t packages < <(jq -r --arg family "$family" --arg groups "$groups" '
+    ($groups | split(",")) as $selected
+    | .groups | to_entries[] | select(.key as $key | $selected | index($key))
+    | .value[$family][]?' "$ROOT/manifests/packages.json")
+  (( ${#packages[@]} > 0 )) || die "No packages mapped for $family groups: $groups"
+  if (( EUID != 0 )); then require sudo; root_command=(sudo); fi
+  case "$family" in
+    fedora) command=(dnf install); (( yes )) && command+=(-y) ;;
+    arch) command=(pacman -S --needed); (( yes )) && command+=(--noconfirm) ;;
+    debian)
+      if (( dry_run )); then printf '+ '; printf '%q ' "${root_command[@]}" apt-get update; printf '\n';
+      else "${root_command[@]}" apt-get update; fi
+      command=(apt-get install); (( yes )) && command+=(-y) ;;
+    opensuse) command=(zypper install); (( yes )) && command+=(--non-interactive) ;;
+    *) die "Unsupported package family: $family" ;;
+  esac
+  if (( dry_run )); then printf '+ '; printf '%q ' "${root_command[@]}" "${command[@]}" "${packages[@]}"; printf '\n';
+  else "${root_command[@]}" "${command[@]}" "${packages[@]}"; fi
+  if (( install_flatpaks )); then
+    require flatpak
+    mapfile -t packages < <(jq -r '.flatpaks[]' "$ROOT/manifests/packages.json")
+    if (( dry_run )); then printf '+ flatpak install --user flathub '; printf '%q ' "${packages[@]}"; printf '\n';
+    else flatpak install --user flathub "${packages[@]}"; fi
+  fi
 }
 
 check_repo() {
   local failed=0
   require jq
   require rsync
-  jq empty "$ROOT/manifests/packages.json" "$ROOT/manifests/third-party.json" || failed=1
+  jq empty "$ROOT/manifests/packages.json" "$ROOT/manifests/projects.json" "$ROOT/manifests/third-party.json" || failed=1
+  jq -e '.groups | all(.[]; has("fedora") and has("arch") and has("debian") and has("opensuse"))' "$ROOT/manifests/packages.json" >/dev/null || { printf 'A package group lacks a target OS mapping.\n' >&2; failed=1; }
+  jq -e 'all(.projects[]; (.id | length > 0) and (.repository | type == "string") and (.localPath | startswith("/") | not))' "$ROOT/manifests/projects.json" >/dev/null || { printf 'Invalid portable project metadata.\n' >&2; failed=1; }
   awk -F '\t' 'NR > 1 && NF != 5 {print "invalid files.tsv line " NR; bad=1} END {exit bad}' "$MANIFEST" || failed=1
   if grep -RInE --exclude-dir=.git --exclude='dotfiles' --exclude='projects.tsv' --exclude='inventory.md' 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|CIDER_API_TOKEN=.{8,}|(api[_-]?key|token|password)[=:][[:space:]]*[A-Za-z0-9_-]{16,}' "$ROOT"; then
     printf 'Potential secret found.\n' >&2; failed=1
@@ -138,8 +201,9 @@ case "${1:-}" in
   capture) shift; capture "$@" ;;
   apply) shift; apply_portable "$@" ;;
   apply-video-wallpapers) shift; "$ROOT/lib/apply-video-wallpapers.sh" "$@" ;;
+  bootstrap) shift; bootstrap "$@" ;;
   packages) show_packages ;;
-  projects) column -s $'\t' -t < "$ROOT/manifests/projects.tsv" ;;
+  projects) jq -r '.projects[] | [.id, .repository, .status, .purpose] | @tsv' "$ROOT/manifests/projects.json" | column -s $'\t' -t ;;
   check) check_repo ;;
   -h|--help|help|'') usage ;;
   *) die "Unknown command: $1" ;;
