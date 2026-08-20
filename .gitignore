@@ -4,6 +4,3 @@ secrets/
 *.bak
 *~
 .DS_Store
-
-# Exact profiles are useful locally but may identify hardware.
-profiles/machines/*/private/

@@ -1,10 +1,33 @@
 const plugin = "__PLUGIN__";
 const landscape = "file://__LANDSCAPE__";
-const portrait = "file://__PORTRAIT__";
+const portraitLeft = "file://__PORTRAIT_LEFT__";
+const portraitRight = "file://__PORTRAIT_RIGHT__";
+const desktopEntries = desktops().map(desktop => ({
+    desktop,
+    geometry: screenGeometry(desktop.screen)
+}));
 
-for (const desktop of desktops()) {
-    const geometry = screenGeometry(desktop.screen);
-    const video = geometry.height > geometry.width ? portrait : landscape;
+function centerX(geometry) {
+    return geometry.x + geometry.width / 2;
+}
+
+function nearestLandscape(geometry) {
+    const candidates = desktopEntries.filter(entry => entry.geometry.width >= entry.geometry.height);
+    candidates.sort((a, b) =>
+        Math.abs(centerX(a.geometry) - centerX(geometry)) -
+        Math.abs(centerX(b.geometry) - centerX(geometry))
+    );
+    return candidates[0];
+}
+
+for (const {desktop, geometry} of desktopEntries) {
+    let video = landscape;
+    if (geometry.height > geometry.width) {
+        const anchor = nearestLandscape(geometry);
+        video = anchor && centerX(geometry) < centerX(anchor.geometry)
+            ? portraitLeft
+            : portraitRight;
+    }
     desktop.wallpaperPlugin = plugin;
     desktop.currentConfigGroup = ["Wallpaper", plugin, "General"];
     desktop.writeConfig("LastVideo", video);

@@ -11,10 +11,7 @@ Usage: dotfiles <command> [options]
 Commands:
   list                                  List portable modules
   capture [modules]                     Refresh portable payload
-  capture --machine NAME               Refresh an exact machine profile
   apply [modules] [--dry-run]           Restore portable modules
-  apply-machine NAME [--dry-run] [--force]
-                                        Restore exact host state explicitly
   apply-video-wallpapers [--dry-run]    Set landscape/portrait Plasma videos
   packages                              Show package intent for this distro
   projects                              Show canonical source repositories
@@ -27,25 +24,17 @@ list_modules() {
 }
 
 capture() {
-  local selected=all machine="" module source destination mode scope source_path destination_path
+  local selected=all module source destination mode scope source_path destination_path
   while (( $# )); do
-    case "$1" in
-      --machine) (( $# >= 2 )) || die '--machine requires a name'; machine="$2"; shift ;;
-      *) selected="$1" ;;
-    esac
+    selected="$1"
     shift
   done
   require rsync
   while IFS=$'\t' read -r module source destination mode scope; do
     [[ -n "$module" && "$module" != module && "$module" != \#* ]] || continue
-    if [[ -n "$machine" ]]; then
-      [[ "$scope" == "machine:$machine" ]] || continue
-      destination_path="$ROOT/profiles/machines/$machine/$destination"
-    else
-      [[ "$scope" == portable ]] || continue
-      module_selected "$module" "$selected" || continue
-      destination_path="$ROOT/payload/home/$destination"
-    fi
+    [[ "$scope" == portable ]] || continue
+    module_selected "$module" "$selected" || continue
+    destination_path="$ROOT/payload/home/$destination"
     source_path="$HOME/$source"
     if [[ "$module" == video-wallpapers && -e "$HOME/$destination" ]]; then
       source_path="$HOME/$destination"
@@ -113,44 +102,6 @@ apply_portable() {
   (( dry_run )) || info "Backup: $backup_root"
 }
 
-apply_machine() {
-  local machine="${1:-}" dry_run=0 force=0 module source destination mode scope source_path target backup_root expected_host current_host
-  [[ -n "$machine" ]] || die 'apply-machine requires a profile name'
-  shift
-  while (( $# )); do
-    case "$1" in
-      --dry-run) dry_run=1 ;;
-      --force) force=1 ;;
-      *) die "Unknown apply-machine option: $1" ;;
-    esac
-    shift
-  done
-  [[ -d "$ROOT/profiles/machines/$machine" ]] || die "Unknown machine profile: $machine"
-  require jq
-  require rsync
-  [[ -r "$ROOT/profiles/machines/$machine/profile.json" ]] || die "Machine profile lacks profile.json: $machine"
-  expected_host="$(jq -r '.hostname' "$ROOT/profiles/machines/$machine/profile.json")"
-  current_host="$(hostnamectl --static 2>/dev/null || hostname)"
-  if [[ "$expected_host" != "$current_host" && "$force" != 1 ]]; then
-    die "Profile expects host $expected_host, current host is $current_host; inspect it and use --force intentionally"
-  fi
-  if (( ! dry_run && ! force )) && command -v busctl >/dev/null 2>&1 && busctl --user status org.kde.plasmashell >/dev/null 2>&1; then
-    die 'Plasma Shell is running; apply exact state from a TTY/logout session or use --force after accepting overwrite risk'
-  fi
-  backup_root="$STATE_ROOT/backups/$(date +%Y%m%d-%H%M%S)-$machine"
-  while IFS=$'\t' read -r module source destination mode scope; do
-    [[ "$scope" == "machine:$machine" ]] || continue
-    source_path="$ROOT/profiles/machines/$machine/$destination"
-    [[ -e "$source_path" ]] || continue
-    target="$HOME/$source"
-    if (( dry_run )); then printf 'would apply exact state: %s -> %s\n' "$source_path" "$target"; continue; fi
-    backup_path "$target" "$backup_root"
-    mkdir -p "$(dirname "$target")"
-    if [[ "$mode" == dir ]]; then mkdir -p "$target"; rsync -a -- "$source_path/" "$target/"; else cp -a -- "$source_path" "$target"; fi
-  done < "$MANIFEST"
-  (( dry_run )) || info "Exact state applied. Backup: $backup_root"
-}
-
 show_packages() {
   local family=fedora
   [[ -r /etc/os-release ]] && source /etc/os-release
@@ -174,6 +125,9 @@ check_repo() {
   if grep -RIl --exclude-dir=.git --exclude='dotfiles' '/home/puzll' "$ROOT/payload" "$ROOT/lib" 2>/dev/null | grep -q .; then
     printf 'Unexpected hard-coded source home found in portable content.\n' >&2; failed=1
   fi
+  if grep -Ein 'kwinoutputconfig|(^|/)kscreen(/|$)|plasma-org\.kde\.plasma\.desktop-appletsrc|edid(Hash|Identifier)?|connectorName|lastScreen|activityId' "$MANIFEST" >/dev/null; then
+    printf 'Hardware-bound Plasma state found in the portable manifest.\n' >&2; failed=1
+  fi
   while IFS= read -r script; do bash -n "$script" || failed=1; done < <(find "$ROOT/bin" "$ROOT/lib" -type f)
   (( failed == 0 )) || exit 1
   info 'Dotfiles verification: PASS'
@@ -183,7 +137,6 @@ case "${1:-}" in
   list) list_modules ;;
   capture) shift; capture "$@" ;;
   apply) shift; apply_portable "$@" ;;
-  apply-machine) shift; apply_machine "$@" ;;
   apply-video-wallpapers) shift; "$ROOT/lib/apply-video-wallpapers.sh" "$@" ;;
   packages) show_packages ;;
   projects) column -s $'\t' -t < "$ROOT/manifests/projects.tsv" ;;

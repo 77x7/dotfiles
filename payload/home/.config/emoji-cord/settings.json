@@ -1,0 +1,9 @@
+{
+    "backgroundOpacity": 61,
+    "blurEnabled": true,
+    "contrastEnabled": true,
+    "dynamicWidth": true,
+    "maximumPickerWidth": 220,
+    "pickerWidth": 220,
+    "visibleSuggestions": 8
+}

@@ -15,10 +15,10 @@
       "arch": ["cmake", "ninja", "gcc", "qt6-base", "kservice", "libpulse", "libx11"],
       "debian": ["cmake", "ninja-build", "g++", "qt6-base-dev", "libpulse-dev", "libx11-dev"]
     },
-    "input": {
-      "fedora": ["fcitx5", "fcitx5-configtool", "espanso-wayland"],
-      "arch": ["fcitx5", "fcitx5-configtool"],
-      "debian": ["fcitx5", "fcitx5-config-qt"]
+    "emoji-cord-build": {
+      "fedora": ["cmake", "gcc-c++", "kf6-kwindowsystem-devel", "libX11-devel", "libXi-devel", "libXtst-devel", "libxkbcommon-devel", "ninja-build", "qt6-qtbase-devel", "qt6-qtbase-private-devel", "qt6-qtdeclarative-devel", "qt6-qtwayland-devel", "wayland-devel"],
+      "arch": ["cmake", "gcc", "kwindowsystem", "libx11", "libxi", "libxtst", "libxkbcommon", "ninja", "qt6-base", "qt6-declarative", "qt6-wayland", "wayland"],
+      "debian": ["cmake", "g++", "libkf6windowsystem-dev", "libx11-dev", "libxi-dev", "libxtst-dev", "libxkbcommon-dev", "ninja-build", "qt6-base-dev", "qt6-declarative-dev", "qt6-wayland-dev", "wayland-protocols"]
     },
     "appearance": {
       "fedora": ["kvantum", "abattis-cantarell-vf-fonts", "google-noto-sans-fonts", "jetbrainsmono-nerd-fonts"],

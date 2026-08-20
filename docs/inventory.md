@@ -11,7 +11,7 @@
 ## KDE desktop
 
 - Two custom bottom panels currently exist, one per display, with SCP Menu Reborn, Window Title, Fancy Tasks NG, PlasMusic Toolbar, System Tray, and Digital Clock.
-- `~/.config/plasma-org.kde.plasma.desktop-appletsrc` contains exact containment IDs, activity UUIDs, output mappings, tray history, resolutions, and hard-coded source-home paths. It belongs only to the `current-desktop` machine profile.
+- Raw `plasma-org.kde.plasma.desktop-appletsrc`, KScreen, and KWin output state are deliberately excluded because they contain containment IDs, activity UUIDs, output mappings, tray history, resolutions, and hard-coded paths.
 - MediaVol's `sources/plasma-layout/adaptive-panel.js` is the portable panel source and should remain the normal restore path.
 - KWin has custom shortcuts, KZones layouts, remembered window positions, focused-volume and Emoji-cord context scripts, No Vicinae Animation, Kinetic Fading Popups, Better Blur DX, Karousel, Eye on Screen, and Keep Above Outline.
 - The local Window Title widget removes a private appmenu import for Plasma compatibility. Preserve this as a patch against upstream, not as original authorship.
@@ -34,7 +34,7 @@
 
 - Zsh with Oh My Zsh, Powerlevel10k, fzf-tab, zsh-sage, and syntax highlighting.
 - Ghostty with transparency, blur, and a cursor-tail shader.
-- Fcitx 5, Espanso, and xremap input integrations.
+- Emoji-cord is the sole text expansion and emoji input path. xremap remains only for focused-volume media keys.
 - PipeWire/PulseAudio, EasyEffects, pavucontrol-qt, Cider, and focused-volume audio workflows.
 - App preferences for MPV, btop, micro, superfile, MangoHud, vkBasalt, Vicinae, qimgv, and fontget.
 - MIME defaults use Helium, qimgv, MPV, CudaText, Ark, Dolphin, qBittorrent, and custom URI handlers.
@@ -43,4 +43,4 @@
 
 - `~/.ssh`, `~/.gnupg`, KWallet, browser/Electron profiles, CLIProxyAPI auth, Codex/Claude/OpenCode auth, Cider token, VPN configuration, cookies, histories, sessions, and PulseAudio cookie.
 - `.cache`, `.local/state`, Flatpak OSTree data, Steam data, containers, package stores, build directories, `node_modules`, Cargo registries, and generated backups.
-- WirePlumber routes/default nodes, KScreen data outside an explicit machine profile, NVIDIA state, device IDs, and runtime databases.
+- WirePlumber routes/default nodes, all KScreen/output state, NVIDIA state, device IDs, and runtime databases.
