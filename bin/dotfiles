@@ -15,6 +15,7 @@ Commands:
   apply-video-wallpapers [--dry-run]    Set landscape/portrait Plasma videos
   bootstrap [--groups LIST] [--flatpaks] [--dry-run] [--yes]
                                         Install mapped packages
+  setup-shell [--dry-run]               Install pinned Zsh setup and switch shell
   packages                              Show package intent for this distro
   projects                              Show canonical source repositories
   check                                 Validate manifests and scan for leaks
@@ -174,13 +175,54 @@ bootstrap() {
   fi
 }
 
+setup_shell() {
+  local dry_run=0 id url revision destination target zsh_path
+  [[ "${1:-}" == --dry-run ]] && dry_run=1
+  (( $# <= dry_run )) || die "Unknown setup-shell option: ${2:-$1}"
+  require git
+  require jq
+  while IFS=$'\t' read -r id url revision destination; do
+    target="$HOME/$destination"
+    if (( dry_run )); then
+      printf 'would install: %s at %s (%s)\n' "$id" "$target" "$revision"
+      continue
+    fi
+    if [[ -e "$target" && ! -d "$target/.git" ]]; then
+      die "Refusing to replace non-Git path: $target"
+    fi
+    if [[ ! -d "$target/.git" ]]; then
+      mkdir -p "$(dirname "$target")"
+      git init -q "$target"
+      git -C "$target" remote add origin "$url"
+    elif [[ "$(git -C "$target" remote get-url origin 2>/dev/null || true)" != "$url" ]]; then
+      die "Unexpected origin for $target"
+    fi
+    git -C "$target" fetch -q --depth 1 origin "$revision"
+    git -C "$target" checkout -q --detach FETCH_HEAD
+    printf 'installed: %s (%s)\n' "$id" "$revision"
+  done < <(jq -r '.components[] | [.id, .url, .revision, .destination] | @tsv' "$ROOT/manifests/shell.json")
+
+  zsh_path="$(command -v zsh || true)"
+  [[ -n "$zsh_path" ]] || die 'zsh is not installed; run bootstrap with the core group first'
+  if [[ "$(getent passwd "${USER:-$(id -un)}" | cut -d: -f7)" == "$zsh_path" ]]; then
+    info "Login shell is already $zsh_path"
+  elif (( dry_run )); then
+    printf 'would switch login shell: chsh -s %q\n' "$zsh_path"
+  else
+    grep -Fxq "$zsh_path" /etc/shells || die "$zsh_path is not listed in /etc/shells"
+    chsh -s "$zsh_path"
+    info "Login shell changed to $zsh_path; it takes effect at the next login."
+  fi
+}
+
 check_repo() {
   local failed=0
   require jq
   require rsync
-  jq empty "$ROOT/manifests/packages.json" "$ROOT/manifests/projects.json" "$ROOT/manifests/third-party.json" || failed=1
+  jq empty "$ROOT/manifests/packages.json" "$ROOT/manifests/projects.json" "$ROOT/manifests/shell.json" "$ROOT/manifests/third-party.json" || failed=1
   jq -e '.groups | all(.[]; has("fedora") and has("arch") and has("debian") and has("opensuse"))' "$ROOT/manifests/packages.json" >/dev/null || { printf 'A package group lacks a target OS mapping.\n' >&2; failed=1; }
   jq -e 'all(.projects[]; (.id | length > 0) and (.repository | type == "string") and (.localPath | startswith("/") | not))' "$ROOT/manifests/projects.json" >/dev/null || { printf 'Invalid portable project metadata.\n' >&2; failed=1; }
+  jq -e 'all(.components[]; (.url | startswith("https://github.com/")) and (.revision | test("^[0-9a-f]{40}$")) and (.destination | startswith("/") | not))' "$ROOT/manifests/shell.json" >/dev/null || { printf 'Invalid pinned shell component metadata.\n' >&2; failed=1; }
   awk -F '\t' 'NR > 1 && NF != 5 {print "invalid files.tsv line " NR; bad=1} END {exit bad}' "$MANIFEST" || failed=1
   if grep -RInE --exclude-dir=.git --exclude='dotfiles' --exclude='projects.tsv' --exclude='inventory.md' 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|CIDER_API_TOKEN=.{8,}|(api[_-]?key|token|password)[=:][[:space:]]*[A-Za-z0-9_-]{16,}' "$ROOT"; then
     printf 'Potential secret found.\n' >&2; failed=1
@@ -191,6 +233,17 @@ check_repo() {
   if grep -Ein 'kwinoutputconfig|(^|/)kscreen(/|$)|plasma-org\.kde\.plasma\.desktop-appletsrc|edid(Hash|Identifier)?|connectorName|lastScreen|activityId' "$MANIFEST" >/dev/null; then
     printf 'Hardware-bound Plasma state found in the portable manifest.\n' >&2; failed=1
   fi
+  for required in \
+    payload/home/.zshrc \
+    payload/home/.p10k.zsh \
+    payload/home/.config/ghostty/config \
+    payload/home/.config/ghostty/shaders/cursor_tail.glsl \
+    payload/home/.config/mpv/scripts/modernz.lua \
+    payload/home/.config/mimeapps.list; do
+    [[ -e "$ROOT/$required" ]] || { printf 'Missing required setup file: %s\n' "$required" >&2; failed=1; }
+  done
+  grep -Fq 'video/mp4=mpv.desktop' "$ROOT/payload/home/.config/mimeapps.list" || { printf 'MPV is not the configured default video player.\n' >&2; failed=1; }
+  grep -Fq 'inode/directory=org.kde.dolphin.desktop' "$ROOT/payload/home/.config/mimeapps.list" || { printf 'Dolphin is not the configured default file manager.\n' >&2; failed=1; }
   while IFS= read -r script; do bash -n "$script" || failed=1; done < <(find "$ROOT/bin" "$ROOT/lib" -type f)
   (( failed == 0 )) || exit 1
   info 'Dotfiles verification: PASS'
@@ -202,6 +255,7 @@ case "${1:-}" in
   apply) shift; apply_portable "$@" ;;
   apply-video-wallpapers) shift; "$ROOT/lib/apply-video-wallpapers.sh" "$@" ;;
   bootstrap) shift; bootstrap "$@" ;;
+  setup-shell) shift; setup_shell "$@" ;;
   packages) show_packages ;;
   projects) jq -r '.projects[] | [.id, .repository, .status, .purpose] | @tsv' "$ROOT/manifests/projects.json" | column -s $'\t' -t ;;
   check) check_repo ;;

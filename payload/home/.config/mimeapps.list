@@ -104,7 +104,6 @@ application/x-lzma=org.kde.ark.desktop;
 application/x-lzma-compressed-tar=org.kde.ark.desktop;
 application/x-matroska=mpv.desktop
 application/x-rar=org.kde.ark.desktop;
-application/x-rpm=/usr/share/applications/org.dnf.AppCenter.desktop
 application/x-shellscript=io.github.cudatext.CudaText-Qt.desktop
 application/x-source-rpm=org.kde.ark.desktop;
 application/x-sv4cpio=org.kde.ark.desktop;

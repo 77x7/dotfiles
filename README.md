@@ -15,6 +15,7 @@ It is not a raw home-directory backup. Tokens, wallets, cookies, browser profile
 ./bin/dotfiles apply-video-wallpapers
 ./bin/dotfiles packages
 ./bin/dotfiles bootstrap --dry-run
+./bin/dotfiles setup-shell --dry-run
 ./bin/dotfiles projects
 ./bin/dotfiles check
 ```
@@ -38,10 +39,11 @@ The wallpaper videos are managed with Git LFS and may have redistribution restri
 ## Restore order
 
 1. Run `./bin/dotfiles packages` and install the applicable package groups.
-2. Clone the repositories reported by `./bin/dotfiles projects`, including Emoji-cord as the input method.
-3. Run `./bin/dotfiles apply <modules>` for portable configuration.
-4. Use MediaVol for its adaptive Plasma panels, focused-volume stack, and visual asset installer.
-5. Provision Cider, VPN, CLI proxy, SSH/GPG, browser, and application credentials manually.
+2. Run `./bin/dotfiles setup-shell` to install pinned Oh My Zsh, Powerlevel10k, fzf-tab, zsh-sage, syntax highlighting, and switch the login shell to Zsh.
+3. Clone the repositories reported by `./bin/dotfiles projects`, including Emoji-cord as the input method.
+4. Run `./bin/dotfiles apply <modules>` for Zsh, Ghostty, MPV, default applications, and other portable configuration.
+5. Use MediaVol for its adaptive Plasma panels, focused-volume stack, and visual asset installer.
+6. Provision Cider, VPN, CLI proxy, SSH/GPG, browser, and application credentials manually.
 
 No monitor topology, EDIDs, connector names, output positions, resolutions, Plasma containment IDs, or activity UUIDs are stored. MediaVol generates panels for the outputs available at apply time, and the video wallpaper script chooses media from each output's current orientation.
 
