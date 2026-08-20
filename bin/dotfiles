@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT/lib/common.sh"
+
+usage() {
+  cat <<'EOF'
+Usage: dotfiles <command> [options]
+
+Commands:
+  list                                  List portable modules
+  capture [modules]                     Refresh portable payload
+  capture --machine NAME               Refresh an exact machine profile
+  apply [modules] [--dry-run]           Restore portable modules
+  apply-machine NAME [--dry-run] [--force]
+                                        Restore exact host state explicitly
+  apply-video-wallpapers [--dry-run]    Set landscape/portrait Plasma videos
+  packages                              Show package intent for this distro
+  projects                              Show canonical source repositories
+  check                                 Validate manifests and scan for leaks
+EOF
+}
+
+list_modules() {
+  awk -F '\t' 'NR > 1 && $1 !~ /^#/ && $5 == "portable" {print $1}' "$MANIFEST" | sort -u
+}
+
+capture() {
+  local selected=all machine="" module source destination mode scope source_path destination_path
+  while (( $# )); do
+    case "$1" in
+      --machine) (( $# >= 2 )) || die '--machine requires a name'; machine="$2"; shift ;;
+      *) selected="$1" ;;
+    esac
+    shift
+  done
+  require rsync
+  while IFS=$'\t' read -r module source destination mode scope; do
+    [[ -n "$module" && "$module" != module && "$module" != \#* ]] || continue
+    if [[ -n "$machine" ]]; then
+      [[ "$scope" == "machine:$machine" ]] || continue
+      destination_path="$ROOT/profiles/machines/$machine/$destination"
+    else
+      [[ "$scope" == portable ]] || continue
+      module_selected "$module" "$selected" || continue
+      destination_path="$ROOT/payload/home/$destination"
+    fi
+    source_path="$HOME/$source"
+    if [[ "$module" == video-wallpapers && -e "$HOME/$destination" ]]; then
+      source_path="$HOME/$destination"
+    fi
+    if [[ ! -e "$source_path" && ! -L "$source_path" ]]; then
+      printf 'missing: ~/%s\n' "$source"
+      continue
+    fi
+    mkdir -p "$(dirname "$destination_path")"
+    if [[ "$mode" == dir ]]; then
+      mkdir -p "$destination_path"
+      rsync -a --delete --exclude='.git/' --exclude='node_modules/' --exclude='build/' --exclude='target/' --exclude='__pycache__/' -- "$source_path/" "$destination_path/"
+    else
+      rsync -a -- "$source_path" "$destination_path"
+      if [[ "$mode" == template && -f "$destination_path" ]]; then
+        sed -i "s|$HOME|__HOME__|g" "$destination_path"
+      fi
+    fi
+    if [[ "$destination" == .zshrc ]]; then
+      sed -i \
+        -e '/source ~\/powerlevel10k\/powerlevel10k.zsh-theme/d' \
+        -e '/^[[:space:]]*export ANTHROPIC_/d' \
+        -e '/^[[:space:]]*export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY/d' \
+        "$destination_path"
+      if ! grep -Fq '.config/shell/local.zsh' "$destination_path"; then
+        printf '\n# Machine-local endpoints and credentials belong outside the repository.\n[[ ! -r "$HOME/.config/shell/local.zsh" ]] || source "$HOME/.config/shell/local.zsh"\n' >> "$destination_path"
+      fi
+    fi
+    printf 'captured: %s\n' "$module:$source"
+  done < "$MANIFEST"
+}
+
+apply_portable() {
+  local selected=all dry_run=0 module source destination mode scope source_path target backup_root
+  while (( $# )); do
+    case "$1" in
+      --dry-run) dry_run=1 ;;
+      *) selected="$1" ;;
+    esac
+    shift
+  done
+  require rsync
+  backup_root="$STATE_ROOT/backups/$(date +%Y%m%d-%H%M%S)"
+  while IFS=$'\t' read -r module source destination mode scope; do
+    [[ "$scope" == portable ]] || continue
+    module_selected "$module" "$selected" || continue
+    source_path="$ROOT/payload/home/$destination"
+    [[ -e "$source_path" ]] || { printf 'not captured: %s\n' "$destination"; continue; }
+    if [[ "$module" == video-wallpapers ]]; then target="$HOME/$destination"; else target="$HOME/$source"; fi
+    if (( dry_run )); then
+      printf 'would apply: %s -> %s\n' "$source_path" "$target"
+      continue
+    fi
+    backup_path "$target" "$backup_root"
+    mkdir -p "$(dirname "$target")"
+    if [[ "$mode" == dir ]]; then
+      mkdir -p "$target"
+      rsync -a -- "$source_path/" "$target/"
+    elif [[ "$mode" == template ]]; then
+      render_file "$source_path" "$target"
+    else
+      cp -a -- "$source_path" "$target"
+    fi
+  done < "$MANIFEST"
+  (( dry_run )) || info "Backup: $backup_root"
+}
+
+apply_machine() {
+  local machine="${1:-}" dry_run=0 force=0 module source destination mode scope source_path target backup_root expected_host current_host
+  [[ -n "$machine" ]] || die 'apply-machine requires a profile name'
+  shift
+  while (( $# )); do
+    case "$1" in
+      --dry-run) dry_run=1 ;;
+      --force) force=1 ;;
+      *) die "Unknown apply-machine option: $1" ;;
+    esac
+    shift
+  done
+  [[ -d "$ROOT/profiles/machines/$machine" ]] || die "Unknown machine profile: $machine"
+  require jq
+  require rsync
+  [[ -r "$ROOT/profiles/machines/$machine/profile.json" ]] || die "Machine profile lacks profile.json: $machine"
+  expected_host="$(jq -r '.hostname' "$ROOT/profiles/machines/$machine/profile.json")"
+  current_host="$(hostnamectl --static 2>/dev/null || hostname)"
+  if [[ "$expected_host" != "$current_host" && "$force" != 1 ]]; then
+    die "Profile expects host $expected_host, current host is $current_host; inspect it and use --force intentionally"
+  fi
+  if (( ! dry_run && ! force )) && command -v busctl >/dev/null 2>&1 && busctl --user status org.kde.plasmashell >/dev/null 2>&1; then
+    die 'Plasma Shell is running; apply exact state from a TTY/logout session or use --force after accepting overwrite risk'
+  fi
+  backup_root="$STATE_ROOT/backups/$(date +%Y%m%d-%H%M%S)-$machine"
+  while IFS=$'\t' read -r module source destination mode scope; do
+    [[ "$scope" == "machine:$machine" ]] || continue
+    source_path="$ROOT/profiles/machines/$machine/$destination"
+    [[ -e "$source_path" ]] || continue
+    target="$HOME/$source"
+    if (( dry_run )); then printf 'would apply exact state: %s -> %s\n' "$source_path" "$target"; continue; fi
+    backup_path "$target" "$backup_root"
+    mkdir -p "$(dirname "$target")"
+    if [[ "$mode" == dir ]]; then mkdir -p "$target"; rsync -a -- "$source_path/" "$target/"; else cp -a -- "$source_path" "$target"; fi
+  done < "$MANIFEST"
+  (( dry_run )) || info "Exact state applied. Backup: $backup_root"
+}
+
+show_packages() {
+  local family=fedora
+  [[ -r /etc/os-release ]] && source /etc/os-release
+  case " ${ID:-} ${ID_LIKE:-} " in
+    *arch*) family=arch ;;
+    *debian*|*ubuntu*) family=debian ;;
+  esac
+  require jq
+  jq -r --arg family "$family" '"Detected package family: \($family)\n", (.groups | to_entries[] | "[\(.key)]\n\(.value[$family] // [] | join(" "))\n")' "$ROOT/manifests/packages.json"
+}
+
+check_repo() {
+  local failed=0
+  require jq
+  require rsync
+  jq empty "$ROOT/manifests/packages.json" "$ROOT/manifests/third-party.json" || failed=1
+  awk -F '\t' 'NR > 1 && NF != 5 {print "invalid files.tsv line " NR; bad=1} END {exit bad}' "$MANIFEST" || failed=1
+  if grep -RInE --exclude-dir=.git --exclude='dotfiles' --exclude='projects.tsv' --exclude='inventory.md' 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|CIDER_API_TOKEN=.{8,}|(api[_-]?key|token|password)[=:][[:space:]]*[A-Za-z0-9_-]{16,}' "$ROOT"; then
+    printf 'Potential secret found.\n' >&2; failed=1
+  fi
+  if grep -RIl --exclude-dir=.git --exclude='dotfiles' '/home/puzll' "$ROOT/payload" "$ROOT/lib" 2>/dev/null | grep -q .; then
+    printf 'Unexpected hard-coded source home found in portable content.\n' >&2; failed=1
+  fi
+  while IFS= read -r script; do bash -n "$script" || failed=1; done < <(find "$ROOT/bin" "$ROOT/lib" -type f)
+  (( failed == 0 )) || exit 1
+  info 'Dotfiles verification: PASS'
+}
+
+case "${1:-}" in
+  list) list_modules ;;
+  capture) shift; capture "$@" ;;
+  apply) shift; apply_portable "$@" ;;
+  apply-machine) shift; apply_machine "$@" ;;
+  apply-video-wallpapers) shift; "$ROOT/lib/apply-video-wallpapers.sh" "$@" ;;
+  packages) show_packages ;;
+  projects) column -s $'\t' -t < "$ROOT/manifests/projects.tsv" ;;
+  check) check_repo ;;
+  -h|--help|help|'') usage ;;
+  *) die "Unknown command: $1" ;;
+esac

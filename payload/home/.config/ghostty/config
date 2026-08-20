@@ -1,0 +1,10 @@
+background = #191724
+foreground = #e0def4
+background-opacity = 0.8
+background-blur = true
+cursor-click-to-move = true
+mouse-hide-while-typing = true
+clipboard-paste-protection = false
+custom-shader = __HOME__/.config/ghostty/shaders/cursor_tail.glsl
+custom-shader-animation = always
+command = /usr/bin/zsh

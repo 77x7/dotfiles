@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Ghostty
+Comment=Terminal emulator
+Exec=env XDG_CURRENT_DESKTOP=KDE /usr/bin/ghostty
+Icon=com.mitchellh.ghostty
+Type=Application
+Categories=System;TerminalEmulator;
+StartupNotify=true

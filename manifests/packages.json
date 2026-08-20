@@ -1,0 +1,48 @@
+{
+  "groups": {
+    "core": {
+      "fedora": ["git", "git-lfs", "curl", "jq", "rsync", "zsh", "fzf", "flatpak", "pipx"],
+      "arch": ["git", "git-lfs", "curl", "jq", "rsync", "zsh", "fzf", "flatpak", "python-pipx"],
+      "debian": ["git", "git-lfs", "curl", "jq", "rsync", "zsh", "fzf", "flatpak", "pipx"]
+    },
+    "desktop": {
+      "fedora": ["ghostty", "micro", "btop", "mpv", "qimgv", "qbittorrent", "pavucontrol-qt", "playerctl", "vicinae"],
+      "arch": ["ghostty", "micro", "btop", "mpv", "qbittorrent", "pavucontrol", "playerctl"],
+      "debian": ["micro", "btop", "mpv", "qbittorrent", "pavucontrol", "playerctl"]
+    },
+    "kde-automation": {
+      "fedora": ["cmake", "ninja-build", "gcc-c++", "qt6-qtbase-devel", "kf6-kservice-devel", "pulseaudio-libs-devel", "libX11-devel", "kdotool", "xremap-kde"],
+      "arch": ["cmake", "ninja", "gcc", "qt6-base", "kservice", "libpulse", "libx11"],
+      "debian": ["cmake", "ninja-build", "g++", "qt6-base-dev", "libpulse-dev", "libx11-dev"]
+    },
+    "input": {
+      "fedora": ["fcitx5", "fcitx5-configtool", "espanso-wayland"],
+      "arch": ["fcitx5", "fcitx5-configtool"],
+      "debian": ["fcitx5", "fcitx5-config-qt"]
+    },
+    "appearance": {
+      "fedora": ["kvantum", "abattis-cantarell-vf-fonts", "google-noto-sans-fonts", "jetbrainsmono-nerd-fonts"],
+      "arch": ["kvantum", "cantarell-fonts", "noto-fonts"],
+      "debian": ["qt6-style-kvantum", "fonts-cantarell", "fonts-noto"]
+    }
+  },
+  "flatpaks": [
+    "com.github.tchx84.Flatseal",
+    "com.github.wwmm.easyeffects",
+    "com.rustdesk.RustDesk",
+    "com.usebottles.bottles",
+    "io.github.benjamimgois.goverlay",
+    "io.github.cudatext.CudaText-Qt",
+    "io.github.kolunmi.Bazaar",
+    "md.obsidian.Obsidian",
+    "nl.hjdskes.gcolor3",
+    "org.jdownloader.JDownloader",
+    "org.localsend.localsend_app",
+    "xyz.xclicker.xclicker"
+  ],
+  "languageTools": {
+    "pipx": ["ddcci-plasmoid-backend==0.1.10"],
+    "cargo": ["jocalsend@1.6.18033988", "xwayland-satellite@0.8.1"],
+    "npmGlobal": ["sass@1.101.0"]
+  }
+}

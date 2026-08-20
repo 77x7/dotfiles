@@ -1,0 +1,11 @@
+{
+  "hostname": "PuzllPC",
+  "operatingSystem": "Nobara Linux 44",
+  "plasma": "6.7",
+  "session": "Wayland",
+  "topology": [
+    {"role": "primary", "resolution": "2560x1440", "orientation": "landscape"},
+    {"role": "secondary", "resolution": "1920x1080", "orientation": "portrait-right"}
+  ],
+  "warning": "Exact profile: contains hardware IDs, screen mappings, Plasma containment IDs, and host paths."
+}

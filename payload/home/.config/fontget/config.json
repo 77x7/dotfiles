@@ -1,0 +1,31 @@
+{
+  "first_run_completed": true,
+  "agreements_accepted": true,
+  "accepted_sources": {
+    "Font Squirrel": {
+      "accepted": true,
+      "accepted_date": "2026-07-27T22:02:21.514633259+04:00"
+    },
+    "Fontshare": {
+      "accepted": true,
+      "accepted_date": "2026-07-27T22:02:21.514476431+04:00"
+    },
+    "Fontsource": {
+      "accepted": true,
+      "accepted_date": "2026-07-27T22:02:21.51457474+04:00"
+    },
+    "Google Fonts": {
+      "accepted": true,
+      "accepted_date": "2026-07-27T22:02:21.514692699+04:00"
+    },
+    "Nerd Fonts": {
+      "accepted": true,
+      "accepted_date": "2026-07-27T22:02:21.514748939+04:00"
+    },
+    "The League of Moveable Type": {
+      "accepted": true,
+      "accepted_date": "2026-07-27T22:02:21.514805168+04:00"
+    }
+  },
+  "sources_last_updated": "0001-01-01T00:00:00Z"
+}

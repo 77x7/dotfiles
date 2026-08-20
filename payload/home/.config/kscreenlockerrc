@@ -1,0 +1,6 @@
+[Daemon]
+Timeout=0
+
+[Greeter][Wallpaper][org.kde.image][General]
+Image=__HOME__/.local/share/wallpapers/Layan/contents/images/2560x1440.png
+PreviewImage=__HOME__/.local/share/wallpapers/Layan/contents/images/2560x1440.png
