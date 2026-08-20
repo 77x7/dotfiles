@@ -1,10 +1,10 @@
 {
   "projects": [
-    {"id": "dotfiles", "repository": "dotfiles", "localPath": "Documents/Projects/dotfiles", "status": "active", "purpose": "Cross-distribution setup inventory and coordinator"},
-    {"id": "mediavol", "repository": "mediavol", "localPath": "MediaVol", "status": "active", "purpose": "Adaptive Plasma setup, focused volume, automation, and visual assets"},
-    {"id": "emoji-cord", "repository": "emoji-cord", "localPath": "Emoji-cord", "status": "active", "purpose": "KDE Wayland shortcode emoji input method"},
-    {"id": "no-vicinae-animation", "repository": "no-vicinae-animation", "localPath": "Documents/Projects/no-vicinae-animation", "status": "active", "purpose": "KWin effect suppressing Vicinae animations"},
-    {"id": "window-title-patch", "repository": "upstream-patch", "localPath": ".local/share/plasma/plasmoids/org.kde.windowtitle", "status": "patch-needed", "purpose": "Local Plasma compatibility modification"},
-    {"id": "qylock", "repository": "upstream-reference", "localPath": "qylock", "status": "clean-upstream", "purpose": "SDDM themes; active Sword theme is unmodified upstream"}
+    {"id": "dotfiles", "repository": "https://github.com/77x7/dotfiles.git", "localPath": "Documents/Projects/dotfiles", "branch": "main", "clone": false, "status": "active", "purpose": "Cross-distribution setup inventory and coordinator"},
+    {"id": "mediavol", "repository": "https://github.com/77x7/mediavol.git", "localPath": "MediaVol", "branch": "main", "clone": true, "status": "active", "purpose": "Adaptive Plasma setup, focused volume, automation, and visual assets"},
+    {"id": "emoji-cord", "repository": "https://github.com/77x7/emoji-cord.git", "localPath": "Emoji-cord", "branch": "main", "clone": true, "status": "active", "purpose": "KDE Wayland shortcode emoji input method"},
+    {"id": "no-vicinae-animation", "repository": "https://github.com/77x7/no-vicinae-animation.git", "localPath": "Documents/Projects/no-vicinae-animation", "branch": "main", "clone": true, "status": "active", "purpose": "KWin effect suppressing Vicinae animations"},
+    {"id": "window-title-patch", "repository": "upstream-patch", "localPath": ".local/share/plasma/plasmoids/org.kde.windowtitle", "branch": null, "clone": false, "status": "patch-needed", "purpose": "Local Plasma compatibility modification"},
+    {"id": "qylock", "repository": "upstream-reference", "localPath": "qylock", "branch": null, "clone": false, "status": "clean-upstream", "purpose": "SDDM themes; active Sword theme is unmodified upstream"}
   ]
 }

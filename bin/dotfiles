@@ -16,6 +16,7 @@ Commands:
   bootstrap [--groups LIST] [--flatpaks] [--dry-run] [--yes]
                                         Install mapped packages
   setup-shell [--dry-run]               Install pinned Zsh setup and switch shell
+  setup-projects [--dry-run]            Clone authored application repositories
   packages                              Show package intent for this distro
   projects                              Show canonical source repositories
   check                                 Validate manifests and scan for leaks
@@ -215,13 +216,37 @@ setup_shell() {
   fi
 }
 
+setup_projects() {
+  local dry_run=0 id repository local_path branch target origin
+  [[ "${1:-}" == --dry-run ]] && dry_run=1
+  (( $# <= dry_run )) || die "Unknown setup-projects option: ${2:-$1}"
+  require git
+  require jq
+  while IFS=$'\t' read -r id repository local_path branch; do
+    target="$HOME/$local_path"
+    if (( dry_run )); then
+      printf 'would clone: %s -> %s (%s)\n' "$repository" "$target" "$branch"
+      continue
+    fi
+    if [[ -d "$target/.git" ]]; then
+      origin="$(git -C "$target" remote get-url origin 2>/dev/null || true)"
+      [[ "$origin" == "$repository" ]] || die "Unexpected origin for $target: $origin"
+      printf 'already cloned: %s\n' "$id"
+      continue
+    fi
+    [[ ! -e "$target" ]] || die "Refusing to replace non-Git path: $target"
+    mkdir -p "$(dirname "$target")"
+    git clone --branch "$branch" --single-branch "$repository" "$target"
+  done < <(jq -r '.projects[] | select(.clone) | [.id, .repository, .localPath, .branch] | @tsv' "$ROOT/manifests/projects.json")
+}
+
 check_repo() {
   local failed=0
   require jq
   require rsync
   jq empty "$ROOT/manifests/packages.json" "$ROOT/manifests/projects.json" "$ROOT/manifests/shell.json" "$ROOT/manifests/third-party.json" || failed=1
   jq -e '.groups | all(.[]; has("fedora") and has("arch") and has("debian") and has("opensuse"))' "$ROOT/manifests/packages.json" >/dev/null || { printf 'A package group lacks a target OS mapping.\n' >&2; failed=1; }
-  jq -e 'all(.projects[]; (.id | length > 0) and (.repository | type == "string") and (.localPath | startswith("/") | not))' "$ROOT/manifests/projects.json" >/dev/null || { printf 'Invalid portable project metadata.\n' >&2; failed=1; }
+  jq -e 'all(.projects[]; (.id | length > 0) and (.repository | type == "string") and (.localPath | startswith("/") | not) and (if .clone then (.repository | startswith("https://github.com/")) and (.branch | type == "string") else true end))' "$ROOT/manifests/projects.json" >/dev/null || { printf 'Invalid portable project metadata.\n' >&2; failed=1; }
   jq -e 'all(.components[]; (.url | startswith("https://github.com/")) and (.revision | test("^[0-9a-f]{40}$")) and (.destination | startswith("/") | not))' "$ROOT/manifests/shell.json" >/dev/null || { printf 'Invalid pinned shell component metadata.\n' >&2; failed=1; }
   awk -F '\t' 'NR > 1 && NF != 5 {print "invalid files.tsv line " NR; bad=1} END {exit bad}' "$MANIFEST" || failed=1
   if grep -RInE --exclude-dir=.git --exclude='dotfiles' --exclude='projects.tsv' --exclude='inventory.md' 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|CIDER_API_TOKEN=.{8,}|(api[_-]?key|token|password)[=:][[:space:]]*[A-Za-z0-9_-]{16,}' "$ROOT"; then
@@ -256,6 +281,7 @@ case "${1:-}" in
   apply-video-wallpapers) shift; "$ROOT/lib/apply-video-wallpapers.sh" "$@" ;;
   bootstrap) shift; bootstrap "$@" ;;
   setup-shell) shift; setup_shell "$@" ;;
+  setup-projects) shift; setup_projects "$@" ;;
   packages) show_packages ;;
   projects) jq -r '.projects[] | [.id, .repository, .status, .purpose] | @tsv' "$ROOT/manifests/projects.json" | column -s $'\t' -t ;;
   check) check_repo ;;
